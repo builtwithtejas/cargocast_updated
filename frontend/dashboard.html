@@ -603,26 +603,82 @@
     }
   }
 
-  function renderRecommendation(rec) {
-    document.getElementById("rec-headline").textContent =
-      rec.charter_type.toUpperCase() + " — " + rec.timing.toUpperCase();
-    document.getElementById("rec-sentiment").textContent =
-      "• " + (rec.trend_pct > 0 ? "BULLISH" : "BEARISH");
-    document.getElementById("rec-reason").textContent = rec.reason;
-    document.getElementById("rec-trend").textContent =
-      "Trend " + (rec.trend_pct > 0 ? "+" : "") + rec.trend_pct + "%";
-    document.getElementById("rec-risk").textContent =
-      "Risk " + Math.round(rec.disruption_score * 100) + "%";
-  }
+ function renderRecommendation(rec) {
+  const charter =
+    rec.charter_type ??
+    rec.charter_decision ??
+    "SPOT";
+
+  const timing =
+    rec.timing ??
+    rec.timing_decision ??
+    "WAIT";
+
+  const reason =
+    rec.reason ??
+    rec.reasoning ??
+    "Recommendation calculated from the latest forecast.";
+
+  const trend =
+    rec.trend_pct ??
+    0;
+
+  const risk =
+    rec.disruption_score ??
+    0;
+
+  document.getElementById("rec-headline").textContent =
+    charter.toUpperCase() + " — " + timing.toUpperCase();
+
+  document.getElementById("rec-sentiment").textContent =
+    "• " + (trend > 0 ? "BULLISH" : trend < 0 ? "BEARISH" : "NEUTRAL");
+
+  document.getElementById("rec-reason").textContent = reason;
+
+  document.getElementById("rec-trend").textContent =
+    "Trend " + (trend >= 0 ? "+" : "") + Number(trend).toFixed(1) + "%";
+
+  document.getElementById("rec-risk").textContent =
+    "Risk " + Math.round(risk * 100) + "%";
+}
 
   function renderSavings(savings) {
-    document.getElementById("naive-cost").textContent = fmtUSD(savings.naive_cost_usd);
-    document.getElementById("model-cost").textContent = fmtUSD(savings.model_cost_usd);
-    document.getElementById("savings-inr").textContent = fmtINR(savings.savings_inr);
-    document.getElementById("savings-pct-badge").textContent =
-      "+" + savings.savings_pct + "% ALPHA SAVED";
-  }
+  const naive =
+    savings.naive_cost_usd ??
+    savings.naive_cost ??
+    0;
 
+  const model =
+    savings.model_cost_usd ??
+    savings.optimized_cost ??
+    0;
+
+  const saved =
+    savings.savings_amount ??
+    savings.savings_usd ??
+    (naive - model);
+
+  const pct =
+    savings.savings_pct ??
+    (naive ? (saved / naive) * 100 : 0);
+
+  // Approximate USD → INR conversion for dashboard display.
+  const usdToInr = 85;
+
+  const savingsINR = saved * usdToInr;
+
+  document.getElementById("naive-cost").textContent =
+    fmtUSD(naive);
+
+  document.getElementById("model-cost").textContent =
+    fmtUSD(model);
+
+  document.getElementById("savings-inr").textContent =
+    fmtINR(savingsINR);
+
+  document.getElementById("savings-pct-badge").textContent =
+    "+" + Number(pct).toFixed(2) + "% ALPHA SAVED";
+}
   async function loadInitial() {
     const forecastRes = await fetch(`${API_BASE}/api/forecast?horizon_days=60`);
     const forecast = await forecastRes.json();
